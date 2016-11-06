@@ -5,37 +5,50 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+extern crate git2;
 extern crate gcc;
-extern crate tar;
-extern crate walkdir;
 
+use std::env;
+use std::io::Read;
 use std::fs::File;
+use std::path::Path;
+use std::process::Command;
 
-use tar::Archive;
-use walkdir::{DirEntry, WalkDir, WalkDirIterator};
-
-fn is_c(entry: &DirEntry) -> bool {
-    match entry.path().extension() {
-        Some(ext) => "c" == ext,
-        None      => false
-    }
-}
+use git2::{Repository, Oid};
 
 fn main() {
-    let mut archive = Archive::new(File::open("src/mruby/mruby-out.tar").unwrap());
-    archive.unpack("target").unwrap();
+  let lib_search_path = "build/host/lib";
+  let lib_name = "libmruby.a";
+  let mruby_root = if cfg!(feature = "set_mruby_path") {
+    env::var("MRUBY_ROOT").unwrap()
+  } else {
+    let repo_url = "https://github.com/mruby/mruby.git";
+    let current_dir = env::current_dir().unwrap();
+    let out_path = format!("{}/mruby", env::var("OUT_DIR").unwrap());
+    let root = out_path.clone();
 
-    let mut config = gcc::Config::new();
+    let mut commit_id = String::new();
+    File::open(".mruby_version").unwrap().read_to_string(&mut commit_id).unwrap();
+    let commit_id = Oid::from_str(commit_id.trim()).unwrap();
 
-    for entry in WalkDir::new("target/mruby-out/src").into_iter().filter_entry(|e| e.file_type().is_dir() || is_c(e)) {
-        let entry = entry.unwrap();
+    let repo = if Path::new(&out_path).exists() {
+      let r = Repository::open(&out_path).unwrap();
+      r.find_remote("origin").unwrap().fetch(&["master"], None, None).unwrap();
+      r
+    } else {
+      Repository::clone(repo_url, &out_path).unwrap()
+    };
+    repo.checkout_tree(&repo.find_commit(commit_id).unwrap().into_object(), None).unwrap();
 
-        if is_c(&entry) { config.file(entry.path()); }
-    }
+    Command::new("./minirake")
+      .current_dir(&out_path)
+      .arg(&format!("{}/{}/{}", root, lib_search_path, lib_name))
+      .env("MRUBY_CONFIG", format!("{}/.mruby_config.rb", current_dir.to_str().unwrap()))
+      .status().unwrap();
+    root
+  };
 
-    config.include("target/mruby-out/include").compile("libmruby.a");
-
-    let mut config = gcc::Config::new();
-
-    config.file("src/mrb_ext.c").include("target/mruby-out/include").compile("libmrbe.a");
+  println!("cargo:rustc-link-lib=static={}", "mruby");
+  println!("cargo:rustc-link-search=native={}/{}", mruby_root, lib_search_path);
+  gcc::Config::new().file("src/mrb_ext.c").include(format!("{}/include", mruby_root)).compile("libmrbe.a");
 }
