@@ -14,6 +14,7 @@
 #include <mruby/error.h>
 #include <mruby/value.h>
 #include <mruby/proc.h>
+#include <mruby/variable.h>
 
 void* mrb_ext_get_ud(struct mrb_state* mrb) {
   return mrb->ud;
