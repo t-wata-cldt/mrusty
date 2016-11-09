@@ -51,6 +51,11 @@ pub struct Mruby {
 }
 
 impl Mruby {
+  /*
+  pub fn wrap_rust(mrb: *mut mruby_ffi::MrState) -> MrubyType {
+  }
+   */
+
     /// Creates an mruby state and context stored in a `MrubyType` (`Rc<RefCell<Mruby>>`).
     ///
     /// # Example
