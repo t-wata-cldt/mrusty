@@ -10,6 +10,9 @@ documentation = "http://anima-engine.github.io/mrusty/"
 keywords = ["mruby", "ruby", "bindings", "repl"]
 license = "MPL-2.0"
 
+[lib]
+crate-type = ["staticlib", "rlib"]
+
 [build-dependencies]
 gcc = "0.3.22"
 git2 = "0.5.0"

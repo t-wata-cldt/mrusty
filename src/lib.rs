@@ -47,3 +47,44 @@ pub use spec::Spec;
 
 #[cfg(feature = "gnu-readline")]
 pub use read_line::GnuReadLine;
+
+#[allow(dead_code)]
+#[no_mangle]
+pub unsafe extern fn mrb_mrusty_gem_init(mrb: *const mruby_ffi::MrState) {
+  // initialize mrusty for current mrb_state
+  std::mem::forget(Mruby::new_with_state(mrb, false));
+}
+
+#[allow(dead_code)]
+#[no_mangle]
+pub unsafe extern fn mrb_mrusty_gem_final(mrb: *const mruby_ffi::MrState) {
+  // release mrusty resources
+  std::mem::transmute::<_, MrubyType>(mruby_ffi::mrb_ext_get_ud(mrb));
+}
+
+#[macro_export]
+macro_rules! mrbgem_init_func {
+  ($name:ident, $( $rest:tt )* ) => {
+    fn concat_idents!(mrb_, $name, _gem_init)(mrb: *const $crate::mruby_ffi:MrState) {
+      let mruby: $crate::MrubyType = unsafe { std::mem::transmute($crate::mruby_ffi::mrb_ext_get_ud(mrb)) };
+      fn init_fn(mruby) {
+        $( $rest )*
+      }
+      std::mem::forget(mruby);
+    }
+  }
+}
+
+#[macro_export]
+macro_rules! mrbgem_final_func {
+  ($name:ident, $( $rest:tt )* ) => {
+    fn concat_idents!(mrb_, $name, _gem_init)(mrb: *const $crate::mruby_ffi:MrState) {
+      let mruby: $crate::MrubyType = unsafe { std::mem::transmute($crate::mruby_ffi::mrb_ext_get_ud(mrb)) };
+      fn init_fn(mruby) {
+        $( $rest )*
+      }
+      init_fn(mruby);
+      std::mem::forget(mruby);
+    }
+  }
+}

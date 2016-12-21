@@ -379,7 +379,6 @@ extern "C" {
     pub fn mrb_ext_get_class(class: MrValue) -> *const MrClass;
 }
 
-
 #[path="tests/mruby_ffi.rs"]
 #[cfg(test)]
 mod tests;

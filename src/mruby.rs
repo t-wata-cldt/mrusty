@@ -47,14 +47,18 @@ pub struct Mruby {
     mruby_methods:       HashMap<String, HashMap<u32, Rc<Fn(MrubyType, Value) -> Value>>>,
     mruby_class_methods: HashMap<String, HashMap<u32, Rc<Fn(MrubyType, Value) -> Value>>>,
     files:               HashMap<String, Vec<fn(MrubyType)>>,
-    required:            HashSet<String>
+    required:            HashSet<String>,
+    free_mrb:            bool,
+
 }
 
 impl Mruby {
-  /*
-  pub fn wrap_rust(mrb: *mut mruby_ffi::MrState) -> MrubyType {
+
+  pub fn new() -> MrubyType {
+    unsafe {
+      Mruby::new_with_state(::mruby_ffi::mrb_open(), true)
+    }
   }
-   */
 
     /// Creates an mruby state and context stored in a `MrubyType` (`Rc<RefCell<Mruby>>`).
     ///
@@ -64,10 +68,7 @@ impl Mruby {
     /// # use mrusty::Mruby;
     /// let mruby = Mruby::new();
     /// ```
-    pub fn new() -> MrubyType {
-        unsafe {
-            let mrb = mrb_open();
-
+    pub unsafe fn new_with_state(mrb: *const ::mruby_ffi::MrState, free_mrb: bool) -> MrubyType {
             let mruby = Rc::new(RefCell::new(
                 Mruby {
                     mrb:                 mrb,
@@ -79,7 +80,8 @@ impl Mruby {
                     mruby_methods:       HashMap::new(),
                     mruby_class_methods: HashMap::new(),
                     files:               HashMap::new(),
-                    required:            HashSet::new()
+                    required:            HashSet::new(),
+                    free_mrb: free_mrb,
                 }
             ));
 
@@ -197,7 +199,6 @@ impl Mruby {
             ");
 
             mruby
-        }
     }
 
     #[inline]
@@ -215,7 +216,9 @@ impl Mruby {
     fn close(&self) {
         unsafe {
             mrbc_context_free(self.mrb, self.ctx);
-            mrb_close(self.mrb);
+            if self.free_mrb {
+                mrb_close(self.mrb);
+            }
         }
     }
 }
