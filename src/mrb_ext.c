@@ -68,15 +68,8 @@ const char* mrb_ext_sym2name(struct mrb_state* mrb, mrb_value value) {
   return mrb_sym2name(mrb, mrb_symbol(value));
 }
 
-mrb_value mrb_ext_sym_new(struct mrb_state* mrb, const char* string,
-                          size_t len) {
-  mrb_value value;
-
-  mrb_symbol(value) = mrb_intern(mrb, string, len);
-
-  value.tt = MRB_TT_SYMBOL;
-
-  return value;
+mrb_value mrb_ext_sym_new(struct mrb_state* mrb, mrb_sym sym) {
+  return mrb_symbol_value(sym);
 }
 
 void* mrb_ext_get_ptr(mrb_value value) {

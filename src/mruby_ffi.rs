@@ -22,6 +22,8 @@ pub enum MrData {}
 
 pub type MrFunc = extern "C" fn(*const MrState, MrValue) -> MrValue;
 
+type MrbSym = u32;
+
 #[repr(C)]
 pub struct MrDataType {
     pub name: *const c_char,
@@ -69,7 +71,12 @@ impl MrValue {
 
     #[inline]
     pub unsafe fn symbol(mrb: *const MrState, value: &str) -> MrValue {
-        mrb_ext_sym_new(mrb, value.as_ptr(), value.len())
+        mrb_ext_sym_new(mrb, mrb_intern(mrb, value.as_ptr() as *const i8, value.len()))
+    }
+
+    #[inline]
+    pub unsafe fn symbol_lit(mrb: *const MrState, value: &'static str) -> MrValue {
+        mrb_ext_sym_new(mrb, mrb_intern_static(mrb, value.as_ptr() as *const i8, value.len()))
     }
 
     #[inline]
@@ -303,7 +310,8 @@ extern "C" {
     pub fn mrb_get_args(mrb: *const MrState, format: *const c_char, ...);
     pub fn mrb_ext_get_mid(mrb: *const MrState) -> u32;
 
-    pub fn mrb_intern(mrb: *const MrState, string: *const c_char, len: usize) -> u32;
+    pub fn mrb_intern(mrb: *const MrState, string: *const c_char, len: usize) -> MrbSym;
+    pub fn mrb_intern_static(mrb: *const MrState, string: *const c_char, len: usize) -> MrbSym;
 
     pub fn mrb_funcall_argv(mrb: *const MrState, object: MrValue, sym: u32, argc: i32,
                             argv: *const MrValue) -> MrValue;
@@ -335,7 +343,7 @@ extern "C" {
     #[inline]
     pub fn mrb_ext_sym2name(mrb: *const MrState, value: MrValue) -> *const u8;
     #[inline]
-    pub fn mrb_ext_sym_new(mrb: *const MrState, value: *const u8, len: usize) -> MrValue;
+    pub fn mrb_ext_sym_new(mrb: *const MrState, sym: MrbSym) -> MrValue;
     #[inline]
     pub fn mrb_ext_get_ptr(value: MrValue) -> *const u8;
     #[inline]
