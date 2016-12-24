@@ -132,7 +132,7 @@ EOS
         cmd << " CARGO_TARGET_DIR='#{build_dir}' cargo build --lib"
         cmd << " --manifest-path='#{cargo_manifest_file}'"
         cmd << ' --release' unless build.debug_enabled?
-        cmd << ' -v' if $trace
+        cmd << ' --verbose' if $trace
         sh cmd
       end
       set_cargo_library_dependencies out_lib
@@ -154,7 +154,7 @@ MRuby::Gem::Specification.new 'mrusty' do |spec|
     cmd = "MRUBY_ROOT='#{MRUBY_ROOT}' CARGO_TARGET_DIR='#{build_dir}' cargo build --features set_mruby_path --lib"
     cmd << " --manifest-path='#{cargo_manifest_file}'"
     cmd << ' --release' unless build.debug_enabled?
-    cmd << ' -v' if $trace
+    cmd << ' --verbose' if $trace
     sh cmd
   end
   set_cargo_library_dependencies out_lib
